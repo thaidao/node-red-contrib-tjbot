@@ -19,8 +19,21 @@
 ****************************************************************************/
 
 var tj = require("./tjbot.js");
+var LED_R = new Gpio(16, 'out');
+var LED_G = new Gpio(20, 'out');
+var LED_B = new Gpio(21, 'out');
 
 module.exports = function(RED) {
+
+  function blinkLED(var ctlLED) { //function to start blinking
+	var LED = ctlLED;
+	if (LED.readSync() === 0) { //check the pin state, if the state is 0 (or off)
+		LED.writeSync(1); //set pin state to 1 (turn LED on)
+	} else {
+		LED.writeSync(0); //set pin state to 0 (turn LED off)
+	}
+  }
+
   function TJBotNodeShine(config) {
     RED.nodes.createNode(this, config);
     var node = this;
@@ -34,18 +47,64 @@ module.exports = function(RED) {
 
       switch(mode.toLowerCase()) {
         case "shine":
-          if(color == "random") {
-            tj.bots[config.botId].shine(tj.bots[config.botId].randomColor());
-          } else {
-            tj.bots[config.botId].shine(color);
-          }
+		  switch(color){
+			case "red":
+				LED_R.writeSync(1);
+				LED_G.writeSync(0);
+				LED_B.writeSync(0);
+				break;
+
+			case "green":
+				LED_R.writeSync(0);
+				LED_G.writeSync(1);
+				LED_B.writeSync(0);
+				break;
+
+			case "blue":
+				LED_R.writeSync(0);
+				LED_G.writeSync(0);
+				LED_B.writeSync(1);
+				break
+
+			case "off":
+				LED_R.writeSync(0);
+				LED_G.writeSync(0);
+				LED_B.writeSync(0);
+
+				// Unexport GPIO to free resources
+				LED_R.unexport();
+				LED_G.unexport();
+				LED_B.unexport();
+
+				break;
+
+			default:
+				break;
         break;
         case "pulse":
-          tj.bots[config.botId].pulse(color, duration);
+		  switch(color)
+		  {
+			case "red":
+				setInterval(blinkLED(LED_R), duration);
+				break;
+
+			case "green":
+				setInterval(blinkLED(LED_G), duration);
+				break;
+
+			case "blue":
+				setInterval(blinkLED(LED_B), duration);
+				break;
+
+			default;
+				break;
+		  }
         break;
       }
 
     });
   }
+
+  function
   RED.nodes.registerType("tjbot-shine", TJBotNodeShine);
 }
